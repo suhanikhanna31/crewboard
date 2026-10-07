@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.fragment.app.FragmentActivity
+import com.crewboard.service.ShiftService
 import com.crewboard.ui.CrewBoardRoot
 import com.crewboard.ui.CrewBoardTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,13 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) deepLink.value = intent.taskId()   // not again after rotation
+        if (savedInstanceState == null) {
+            deepLink.value = intent.taskId()   // not again after rotation
+            // The toggle shows the saved shift state, but only the toggle used to start the
+            // service that owns the socket. Restore it on launch so the two can't disagree.
+            val s = CrewApp.instance.settings
+            if (s.onShift && !s.token.isNullOrEmpty()) ShiftService.start(this)
+        }
         setContent {
             CrewBoardTheme {
                 AskNotificationPermission()
