@@ -65,11 +65,15 @@ cd backend && pip install -r requirements.txt && pytest
 ```
 
 ### Show an index helping
-`backend/sql/idle_match.sql` is the "idle resources vs open tasks" query. In Postgres:
-```sql
-EXPLAIN ANALYZE <contents of idle_match.sql>;
-```
-Seed a few thousand tasks first (e.g. with `generate_series`) and compare the plan with and without `ix_tasks_status_site`. Paste the before/after into this README.
+`backend/sql/idle_match.sql` is the "idle resources vs open tasks" query. Tested on Postgres 16 with 300,000 seeded tasks (about 1% `open` at `site_id = 1`) and 6 idle resources, after `ANALYZE tasks`, using `EXPLAIN (ANALYZE, BUFFERS)`.
+
+| | With `ix_tasks_status_site` | Without |
+|---|---|---|
+| Scan on `tasks` | Bitmap Index Scan + Bitmap Heap Scan | Parallel Seq Scan (2 workers) |
+| Buffers (shared hit) | 18,061 | 20,947 |
+| Execution time | 27.5 ms | 81.2 ms |
+
+The index makes the query about 3x faster. The gain is modest because the query still reads about 3,050 open rows per loop and the join and sort dominate. Single runs on a laptop with everything in cache, so treat these as approximate.
 
 ## Measuring the labour-shortage claim
 
