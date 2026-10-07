@@ -1,6 +1,6 @@
 # CrewBoard
 
-![CI](https://github.com/YOUR_USER/crewboard/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/suhanikhanna31/crewboard/actions/workflows/ci.yml/badge.svg)
 
 **A live site-crew dispatcher for construction.** Idle workers and misallocated crews are a big part of the labour shortage: if every free person (or robot) is matched to the right job within seconds, fewer people are needed per job. CrewBoard posts jobs, auto-assigns them to the best idle resource, pushes them to the operator's phone in real time, and measures utilisation so the effect is visible.
 
