@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crew
+      POSTGRES_PASSWORD: crew
+      POSTGRES_DB: crewboard
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crew -d crewboard"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://crew:crew@db:5432/crewboard
+      JWT_SECRET: change-me-in-real-deployments-0123456789
+      AUTO_ASSIGN_INTERVAL: "3"
+      AUTO_ASSIGN: "${AUTO_ASSIGN:-1}"   # 0 = disable auto-assign (manual-dispatch baseline)
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 3s
+      retries: 20
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args: { VITE_API_URL: "http://localhost:8000" }
+    ports: ["3000:80"]
+    depends_on: [api]
+
+  simulator:
+    build: ./simulator
+    environment:
+      API_URL: http://api:8000
+      SPAWN_TASKS: "1"               # auto-generate jobs so the demo runs hands-free
+      SPAWN_EVERY: "6"
+      MANUAL_DISPATCH: "${MANUAL_DISPATCH:-0}"   # 1 = slow human dispatcher (benchmark baseline)
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
