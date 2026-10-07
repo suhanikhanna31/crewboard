@@ -75,10 +75,25 @@ Seed a few thousand tasks first (e.g. with `generate_series`) and compare the pl
 
 `GET /metrics/utilisation` reports the share of each resource's shift spent actually working, and the dashboard charts it live.
 
-To get an honest "idle time reduced by X%" number:
-1. Run with `AUTO_ASSIGN=0 MANUAL_DISPATCH=1 docker compose up --build -d` (no auto-assign: a simulated human dispatcher makes one assignment every 20s). Let the simulator run 10 minutes, record overall utilisation.
-2. Run again with plain `docker compose up --build -d` (auto-assign on). Record it again.
-3. Put both numbers, and the setup, here.
+**Result: auto-assignment cut fleet idle time by 17.5% overall, and by 39% across the robots.**
+
+| | Manual dispatch (A) | Auto-assign (B) |
+|---|---|---|
+| Overall utilisation | 0.093 | 0.252 |
+| Overall idle | 0.907 | 0.748 |
+| Robot-only utilisation | 0.186 | 0.505 |
+| Open tasks at measurement | 109 | 38 |
+| Done tasks at measurement | 45 | 114 |
+
+Idle = 1 - utilisation, and reduction = (idle_A - idle_B) / idle_A.
+
+Setup and assumptions:
+- Run A: `AUTO_ASSIGN=0 MANUAL_DISPATCH=1 docker compose up --build -d`. A simulated human dispatcher makes one assignment every 20 s.
+- Run B: plain `docker compose up --build -d` (auto-assign on).
+- Simulated robots; a new job arrives every 6 s (`SPAWN_TASKS=1`, `SPAWN_EVERY=6`).
+- The three human workers were held busy in both runs, so the comparison measures robot dispatch only. That is why overall utilisation stays low.
+- Measured about 15 minutes after startup in both runs (window of roughly 890-930 s).
+- One run per setting, so this is a rough measurement and not a statistically tested result.
 
 ## Robotics / edge angle
 `simulator/simulator.py` runs three robots that register as resources, stream battery and position telemetry, and perform tasks. `simulator/ros2_bridge.py` is a stretch ROS2 node: it forwards `/crewboard/robot_telemetry` to the backend and publishes assignments on `/crewboard/task_cmd` (needs a ROS2 install; not run in CI).
