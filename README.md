@@ -2,6 +2,8 @@
 
 ![CI](https://github.com/suhanikhanna31/crewboard/actions/workflows/ci.yml/badge.svg)
 
+**Demo video (about 90 s):** [CrewBoard: live crew and robot dispatch](https://youtu.be/Gv2yv6TEYa4)
+
 **A live site-crew dispatcher for construction.** Idle workers and misallocated crews are a big part of the labour shortage: if every free person (or robot) is matched to the right job within seconds, fewer people are needed per job. CrewBoard posts jobs, auto-assigns them to the best idle resource, pushes them to the operator's phone in real time, and measures utilisation so the effect is visible.
 
 Humans and robots are the **same resource type**: one dispatcher assigns work to both.
