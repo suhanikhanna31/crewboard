@@ -117,5 +117,28 @@ android/     Kotlin / Jetpack Compose operator app
 .github/     CI and image publishing
 ```
 
-## Debugging story (fill this in)
-Pick one real bug you hit and trace it end to end: Android screen, then API, then simulator. This is the story to tell in the interview.
+## Debugging story: the phone said "On shift" but never connected
+
+**Symptom.** After resetting the stack and logging in again on the emulator, the phone sat on the grey OFFLINE banner and no jobs arrived. Login worked. Switching the shift off and on fixed it.
+
+**Trace.**
+1. API log: `POST /auth/login 200`, `GET /resources 200`, `GET /tasks?assigned_to=3 200`, and no `/ws` line. REST was reaching the server, but no WebSocket was ever attempted.
+2. `SocketClient.kt`: the connection state becomes `OFFLINE` only as its initial value and in `onCompletion`. During a failing reconnect it is `RECONNECTING`. A stuck OFFLINE therefore meant `events()` was not running at all, not that it was failing.
+3. `grep ShiftService`: the foreground service that owns the socket is started in only two places, the On shift toggle and Save and Reconnect (and only `if (s.onShift)`). Nothing started it when the app launched.
+
+**Root cause.** The toggle draws its state from a saved setting (`mutableStateOf(settings.onShift)`), but the socket's lifetime belongs to a service that only the toggle starts. The two can disagree, so the screen could read "On shift" with no service and no socket running.
+
+**Fix.** Restore the service on launch, in `MainActivity.onCreate`:
+
+```kotlin
+if (savedInstanceState == null) {
+    val s = CrewApp.instance.settings
+    if (s.onShift && !s.token.isNullOrEmpty()) ShiftService.start(this)
+}
+```
+
+I put it in the Activity and not in `Application.onCreate`, because Android 12+ can refuse to start a foreground service from a process that was started in the background (for example by WorkManager).
+
+**What I got wrong first.** My first two theories were the exponential backoff and a silent socket close. Reading the code ruled both out: the backoff caps at 30 s, and `onClosed` and `onFailure` both close the channel with an exception, so `retryWhen` always fires.
+
+**What I'd do differently.** Make the service the single source of truth for shift state and have the UI observe it, so the two cannot drift apart. Add a test that relaunches the app with `onShift = true` and asserts a socket opens.
